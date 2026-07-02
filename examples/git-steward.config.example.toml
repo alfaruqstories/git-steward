@@ -1,0 +1,32 @@
+version = 1
+redact_paths = true
+scan_timeout_seconds = 4
+git_timeout_seconds = 4
+scan_workers = 8
+allow_checkpoint = false
+checkpoint_message = "chore: checkpoint local work"
+
+# Archive, backup, and mirror folders are skipped by default.
+archive_markers = [
+  "/Archive/",
+  "/Backups/",
+  " backup",
+  "-backup-",
+  "all-repos",
+]
+
+# Full paths or home-relative paths to skip entirely.
+exclude_paths = []
+
+# Full paths or home-relative paths to report as blocked without probing.
+quarantine_paths = []
+
+[output]
+state_dir = "~/.local/state/git-steward"
+
+#[[repos]]
+#path = "~/Code/important-project"
+
+[[roots]]
+path = "~/Code"
+depth = 3

@@ -1,0 +1,19 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+dist/
+build/
+*.egg-info/
+
+# Local/private runtime state. Examples are committed separately.
+.local/
+state/
+*.local.toml
+config.toml
+history.sqlite
+latest.json
+dashboard.html
