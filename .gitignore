@@ -9,6 +9,10 @@ dist/
 build/
 *.egg-info/
 
+# Private session ledger — never publish.
+ACTIVE-WORK.md
+archive/
+
 # Local/private runtime state. Examples are committed separately.
 .local/
 state/
