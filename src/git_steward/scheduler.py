@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from pathlib import Path
 import os
 import plistlib
 import stat
+from pathlib import Path
 
 from .config import Config
-
 
 DEFAULT_LABEL = "com.git-steward.scan"
 

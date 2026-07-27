@@ -1,6 +1,6 @@
-from pathlib import Path
 import tempfile
 import unittest
+from pathlib import Path
 
 from git_steward.config import Config, Root, path_hash, redacted_path
 

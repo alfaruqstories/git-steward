@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import time
+from dataclasses import dataclass
 
 from .config import Config
-from .git_status import git, scan_repo
+from .git_status import RepoStatus, git, scan_repo
 from .history import record_checkpoint
 
 
@@ -43,7 +43,7 @@ def checkpoint_safe(config: Config, message: str | None = None) -> list[Checkpoi
     return results
 
 
-def checkpoint_repo(config: Config, status, subject: str) -> CheckpointResult:
+def checkpoint_repo(config: Config, status: RepoStatus, subject: str) -> CheckpointResult:
     body = (
         "No-loss local checkpoint created by Git Steward.\n\n"
         "This commit preserves dirty or untracked local work. It was created "

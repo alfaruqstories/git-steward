@@ -1,17 +1,17 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from pathlib import Path
 import hashlib
 import os
+import stat
 import sys
 import textwrap
-from typing import Any
+from dataclasses import dataclass, field
+from pathlib import Path
 
 try:
     import tomllib
 except ModuleNotFoundError:  # pragma: no cover - pyproject requires 3.11+
-    tomllib = None
+    tomllib = None  # type: ignore[assignment]
 
 
 APP_NAME = "git-steward"
@@ -124,9 +124,7 @@ def load_config(explicit: str | None = None) -> Config:
 def write_initial_config(path: Path, roots: list[str], force: bool = False) -> Path:
     if path.exists() and not force:
         raise FileExistsError(f"Config already exists: {path}")
-    root_blocks = "\n".join(
-        f'[[roots]]\npath = "{_toml_string(root)}"\ndepth = 3\n' for root in roots
-    )
+    root_blocks = "\n".join(f'[[roots]]\npath = "{_toml_string(root)}"\ndepth = 3\n' for root in roots)
     body = f"""\
     version = 1
     redact_paths = true
@@ -152,6 +150,7 @@ def write_initial_config(path: Path, roots: list[str], force: bool = False) -> P
     """
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(textwrap.dedent(body).strip() + "\n", encoding="utf-8")
+    path.chmod(stat.S_IRUSR | stat.S_IWUSR)
     return path
 
 

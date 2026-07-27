@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from pathlib import Path
 import json
 import sqlite3
+import stat
+from pathlib import Path
 
 from .config import Config
 from .git_status import RepoStatus
-
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS runs (
@@ -70,8 +70,11 @@ CREATE TABLE IF NOT EXISTS checkpoints (
 
 def init_db(db_path: Path) -> None:
     db_path.parent.mkdir(parents=True, exist_ok=True)
+    db_path.parent.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
     with sqlite3.connect(db_path) as conn:
         conn.executescript(SCHEMA)
+    if db_path.exists():
+        db_path.chmod(stat.S_IRUSR | stat.S_IWUSR)
 
 
 def record_run(config: Config, summary: dict[str, object], statuses: list[RepoStatus]) -> int:
@@ -88,7 +91,8 @@ def record_run(config: Config, summary: dict[str, object], statuses: list[RepoSt
                 json.dumps(summary["totals"], sort_keys=True),
             ),
         )
-        run_id = int(cur.lastrowid)
+        assert cur.lastrowid is not None
+        run_id = cur.lastrowid
         for status in statuses:
             repo_id = upsert_repo(conn, status, str(summary["finished_at"]))
             cur.execute(
@@ -134,10 +138,12 @@ def upsert_repo(conn: sqlite3.Connection, status: RepoStatus, seen_at: str) -> i
         )
         return repo_id
     cur.execute(
-        "INSERT INTO repos(stable_key, display_name, redacted_path, first_seen_at, last_seen_at) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO repos(stable_key, display_name, redacted_path, first_seen_at, last_seen_at)"
+        " VALUES (?, ?, ?, ?, ?)",
         (status.path_hash, status.display_name, status.path, seen_at, seen_at),
     )
-    return int(cur.lastrowid)
+    assert cur.lastrowid is not None
+    return cur.lastrowid
 
 
 def record_checkpoint(config: Config, repo_hash: str, commit_sha: str, subject: str, created_at: str) -> None:

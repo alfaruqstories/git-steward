@@ -1,75 +1,152 @@
 # Git Steward
 
-Git Steward is a local-first tool for watching over Git worktrees so local work is not lost. It scans configured repo roots, writes the current state to JSON, records history in SQLite, renders a local dashboard, and can create safe local checkpoint commits on demand.
+Local-first Git worktree hygiene, status dashboards, no-loss checkpointing, and dev server lifecycle management.
 
-It is designed so the public repo can be released without exposing private machine paths. Tool code, examples, and templates live in this repo. Real roots, excludes, quarantine paths, and state files live outside the repo in a local config directory.
+```bash
+pip install git-steward
+git-steward init --root ~/Code
+git-steward scan --dashboard
+```
 
-## Core Model
+## Features
 
-- `latest.json` is the current machine-readable status for dashboards and status bars.
-- `history.sqlite` is the private local timeline of scans, blockers, and checkpoints.
-- `dashboard.html` is generated from `latest.json`.
-- No remote push is performed by Git Steward.
-- Normal scans do not read file contents.
-- Repos with active Git operations, secret-looking untracked paths, unreadable scans, or configured quarantine paths are marked blocked.
+- **Scan** — discover repos under configured roots, report branch, dirty/untracked/stashed state, ahead/behind counts
+- **Dashboard** — local HTML dashboard rendered from scan data
+- **Checkpoint** — guarded local checkpoint commits for dirty repos (never pushes)
+- **Serve** — detect running dev servers, check health, start/stop, focus their terminal
+- **History** — SQLite timeline of scans, blockages, blockages, checkpoints
+- **Safe by default** — skips active Git operations, secret-looking untracked paths, quarantined repos; never pushes
+
+## Install
+
+```bash
+pip install git-steward
+```
+
+Or from source:
+
+```bash
+git clone https://github.com/alfaruqstories/git-steward
+cd git-steward
+pip install -e .
+```
+
+Requires Python 3.11+.
 
 ## Quick Start
 
 ```bash
+# Create a config that scans ~/Code (depth 3 for nested repos)
 git-steward init --root ~/Code
+
+# Scan all discovered repos and open the dashboard
 git-steward scan --dashboard
-git-steward checkpoint --safe
+
+# See where config and state files live
+git-steward where
 ```
 
-By default Git Steward looks for config in this order:
+Config lives at `~/.config/git-steward/config.toml` by default. State files go to `~/.local/state/git-steward/`.
 
-1. `--config /path/to/config.toml`
-2. `GIT_STEWARD_CONFIG`
-3. `~/.config/git-steward/config.toml`
-4. `~/Library/Application Support/git-steward/config.toml`
+## Usage
 
-If no config exists, the tool exits and asks you to run `git-steward init`. It does not blindly scan the whole machine.
+### Scanning
 
-## Private State
-
-Recommended local layout:
-
-```text
-~/.config/git-steward/config.toml
-~/.local/state/git-steward/latest.json
-~/.local/state/git-steward/history.sqlite
-~/.local/state/git-steward/dashboard.html
+```bash
+git-steward scan                          # scan and write latest.json + history.sqlite
+git-steward scan --fetch                  # fetch remotes before ahead/behind checks
+git-steward scan --dashboard              # also render dashboard.html
 ```
 
-The config and state files should not be committed to this repo.
+### Dashboard
 
-## Recurrence
+```bash
+git-steward dashboard                     # render dashboard.html from latest scan
+```
 
-The intended recurrence stack is:
+Open the generated HTML file in any browser. It shows a summary tile grid plus per-repo cards with branch, dirty count, ahead/behind, stashes, and blockers.
 
-1. Scheduled scan writes `latest.json` and `history.sqlite`.
-2. Dashboard renders from `latest.json`.
-3. Optional menu bar/status bar reads `latest.json`.
-4. Safe checkpointing remains manual until the scan path has been stable on a machine.
+### Checkpointing
 
-Install a macOS LaunchAgent after the config is working:
+```bash
+git-steward checkpoint --safe             # commit dirty work in every safe repo
+git-steward checkpoint --safe --message "wip: before refactor"
+```
+
+Checkpointing is opt-in (`allow_checkpoint = true` in config). It skips repos with active Git operations, suspect untracked paths (`.env`, keys), and status errors.
+
+### Dev Server Lifecycle
+
+```bash
+git-steward serve ls                      # list running dev servers per project
+git-steward serve start <project>         # start a dev server
+git-steward serve stop <project>          # stop a running dev server
+git-steward serve focus <project>         # focus the terminal it's running in
+git-steward serve health <project>        # probe HTTP/TCP health check
+```
+
+Detects projects by matching known dev commands (`next dev`, `vite`, `uvicorn`, `manage.py runserver`, etc.) against repo paths. Ports and process info are tracked in the state directory.
+
+### Scheduled Scanning (macOS)
 
 ```bash
 git-steward install-launchagent --interval 3600
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.git-steward.scan.plist
+```
+
+### Menu Bar Integration (SwiftBar/xBar)
+
+Copy `examples/swiftbar.git-steward.example.sh` to your SwiftBar plugins folder.
+
+## Configuration
+
+Reference: `examples/git-steward.config.example.toml`
+
+```toml
+version = 1
+redact_paths = true
+scan_timeout_seconds = 4
+git_timeout_seconds = 4
+scan_workers = 8
+allow_checkpoint = false          # enable with caution
+checkpoint_message = "chore: checkpoint local work"
+
+[output]
+state_dir = "~/.local/state/git-steward"
+
+[[roots]]
+path = "~/Code"
+depth = 3
+
+# Optional: scan specific repos outside roots
+# [[repos]]
+# path = "~/other-project"
+
+archive_markers = ["/Archive/", "/Backups/", "all-repos"]
+exclude_paths = []
+quarantine_paths = []
 ```
 
 ## Safety
 
-Git Steward is deliberately conservative:
-
-- It never pushes.
-- It skips active merge, rebase, cherry-pick, revert, and bisect states.
-- It skips secret-looking untracked paths such as real `.env` files and private keys.
-- It treats configured quarantine paths as blocked instead of probing them.
-- It records path hashes in SQLite and can redact paths in JSON/HTML.
+- Never pushes to any remote
+- Skips repos during active merge/rebase/cherry-pick/bisect
+- Blocks checkpointing on secret-looking paths (`.env`, `id_*`, `*.pem`, `*credentials*.json`)
+- Quarantined repos are reported as blocked without being probed
+- Paths are redacted in JSON and HTML output (default)
+- State files use restricted permissions (0600)
 
 ## Development
 
 ```bash
-python3 -m unittest discover -s tests
+git clone https://github.com/alfaruqstories/git-steward
+cd git-steward
+pip install -e .
+pip install ruff mypy pre-commit   # or use pipx
+pre-commit install                  # hooks run ruff + mypy
+python3 -m pytest tests/
 ```
+
+## License
+
+MIT

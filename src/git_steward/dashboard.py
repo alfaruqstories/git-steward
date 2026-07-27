@@ -1,18 +1,23 @@
+# ruff: noqa: E501 — CSS embedded in f-strings, long lines are intentional
+
 from __future__ import annotations
 
 import html
+import stat
 from pathlib import Path
+from typing import Any
 
 from .config import Config
 
 
-def render_dashboard(config: Config, summary: dict[str, object]) -> Path:
+def render_dashboard(config: Config, summary: dict[str, Any]) -> Path:
     config.state_dir.mkdir(parents=True, exist_ok=True)
     config.dashboard_html_path.write_text(render_html(summary), encoding="utf-8")
+    config.dashboard_html_path.chmod(stat.S_IRUSR | stat.S_IWUSR)
     return config.dashboard_html_path
 
 
-def render_html(summary: dict[str, object]) -> str:
+def render_html(summary: dict[str, Any]) -> str:
     totals = summary.get("totals", {})
     repos = summary.get("repos", [])
     rows = "\n".join(_render_repo(repo) for repo in repos)
@@ -36,7 +41,8 @@ def render_html(summary: dict[str, object]) -> str:
   --info: #3267c9;
 }}
 body {{ margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }}
-header {{ position: sticky; top: 0; z-index: 1; background: var(--panel); border-bottom: 1px solid var(--line); padding: 24px 32px 18px; }}
+header {{ position: sticky; top: 0; z-index: 1; background: var(--panel);
+  border-bottom: 1px solid var(--line); padding: 24px 32px 18px; }}
 h1 {{ margin: 0 0 4px; font-size: 24px; letter-spacing: 0; }}
 h2 {{ margin: 0; font-size: 17px; letter-spacing: 0; }}
 p {{ margin: 0; color: var(--muted); }}
@@ -54,7 +60,8 @@ main {{ padding: 22px 32px 48px; display: grid; gap: 12px; }}
 .chip {{ border: 1px solid var(--line); border-radius: 999px; padding: 3px 8px; background: #fafbf8; color: var(--muted); }}
 ul {{ margin: 0; padding-left: 20px; color: var(--muted); }}
 code {{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }}
-@media (max-width: 760px) {{ header, main {{ padding-left: 16px; padding-right: 16px; }} .summary {{ grid-template-columns: repeat(2, minmax(120px, 1fr)); }} }}
+@media (max-width: 760px) {{ header, main {{ padding-left: 16px; padding-right: 16px; }}
+  .summary {{ grid-template-columns: repeat(2, minmax(120px, 1fr)); }} }}
 </style>
 </head>
 <body>
@@ -62,11 +69,11 @@ code {{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, mono
   <h1>Git Steward</h1>
   <p>Generated {generated}. Local dashboard; nothing is pushed.</p>
   <section class="summary">
-    <div class="tile"><strong>{totals.get('repos', 0)}</strong>repos scanned</div>
-    <div class="tile"><strong>{totals.get('dirty_repos', 0)}</strong>dirty repos</div>
-    <div class="tile"><strong>{totals.get('ahead_repos', 0)}</strong>ahead of upstream</div>
-    <div class="tile"><strong>{totals.get('stash_repos', 0)}</strong>with stashes</div>
-    <div class="tile"><strong>{totals.get('blocked_repos', 0)}</strong>blocked</div>
+    <div class="tile"><strong>{totals.get("repos", 0)}</strong>repos scanned</div>
+    <div class="tile"><strong>{totals.get("dirty_repos", 0)}</strong>dirty repos</div>
+    <div class="tile"><strong>{totals.get("ahead_repos", 0)}</strong>ahead of upstream</div>
+    <div class="tile"><strong>{totals.get("stash_repos", 0)}</strong>with stashes</div>
+    <div class="tile"><strong>{totals.get("blocked_repos", 0)}</strong>blocked</div>
   </section>
 </header>
 <main>
@@ -96,17 +103,17 @@ def _render_repo(repo: object) -> str:
     return f"""
 <article class="repo {state}">
   <div>
-    <h2>{html.escape(str(item.get('display_name') or 'unknown'))}</h2>
-    <p class="path">{html.escape(str(item.get('path') or ''))}</p>
+    <h2>{html.escape(str(item.get("display_name") or "unknown"))}</h2>
+    <p class="path">{html.escape(str(item.get("path") or ""))}</p>
   </div>
   <div class="chips">
-    <span class="chip">branch {html.escape(str(item.get('branch') or 'none'))}</span>
-    <span class="chip">upstream {html.escape(str(item.get('upstream') or 'none'))}</span>
-    <span class="chip">{html.escape(str(item.get('dirty', 0)))} dirty</span>
-    <span class="chip">{html.escape(str(item.get('untracked', 0)))} untracked</span>
-    <span class="chip">ahead {html.escape(str(item.get('ahead')))}</span>
-    <span class="chip">behind {html.escape(str(item.get('behind')))}</span>
-    <span class="chip">{html.escape(str(item.get('stash_count', 0)))} stashes</span>
+    <span class="chip">branch {html.escape(str(item.get("branch") or "none"))}</span>
+    <span class="chip">upstream {html.escape(str(item.get("upstream") or "none"))}</span>
+    <span class="chip">{html.escape(str(item.get("dirty", 0)))} dirty</span>
+    <span class="chip">{html.escape(str(item.get("untracked", 0)))} untracked</span>
+    <span class="chip">ahead {html.escape(str(item.get("ahead")))}</span>
+    <span class="chip">behind {html.escape(str(item.get("behind")))}</span>
+    <span class="chip">{html.escape(str(item.get("stash_count", 0)))} stashes</span>
     {blocked_chip}
   </div>
   <ul>{changes}</ul>

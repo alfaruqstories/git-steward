@@ -1,15 +1,14 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from pathlib import Path
-from concurrent.futures import ThreadPoolExecutor, as_completed
 import os
 import re
 import subprocess
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass, field
+from pathlib import Path
 
 from .config import Config, is_path_under, path_hash, redacted_path
-
 
 SAFE_ENV_EXAMPLES = {
     ".env.example",
@@ -102,13 +101,7 @@ class RepoStatus:
 
 def run(cmd: list[str], timeout: int) -> CommandResult:
     try:
-        proc = subprocess.run(
-            cmd,
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            timeout=timeout,
-        )
+        proc = subprocess.run(cmd, text=True, capture_output=True, timeout=timeout)
         return CommandResult(proc.returncode, proc.stdout.strip(), proc.stderr.strip())
     except subprocess.TimeoutExpired:
         return CommandResult(124, "", "timeout", timed_out=True)
@@ -190,9 +183,9 @@ def scan_all(config: Config, fetch: bool = False) -> tuple[dict[str, object], li
             "redact_paths": config.redact_paths,
         },
         "paths": {
-            "latest_json": str(config.latest_json_path),
-            "dashboard_html": str(config.dashboard_html_path),
-            "history_sqlite": str(config.history_sqlite_path),
+            "latest_json": redacted_path(config, config.latest_json_path),
+            "dashboard_html": redacted_path(config, config.dashboard_html_path),
+            "history_sqlite": redacted_path(config, config.history_sqlite_path),
         },
         "repos": [status.public_dict() for status in statuses],
     }

@@ -4,7 +4,6 @@ import argparse
 import json
 import shutil
 import sys
-from pathlib import Path
 
 from .checkpoint import checkpoint_safe
 from .config import default_config_paths, find_config_path, load_config, write_initial_config
@@ -31,7 +30,9 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("dashboard", help="Render dashboard.html from latest.json.")
 
     checkpoint = sub.add_parser("checkpoint", help="Create guarded local checkpoint commits.")
-    checkpoint.add_argument("--safe", action="store_true", required=True, help="Only checkpoint repos that pass safety checks.")
+    checkpoint.add_argument(
+        "--safe", action="store_true", required=True, help="Only checkpoint repos that pass safety checks"
+    )
     checkpoint.add_argument("--message", help="Checkpoint commit subject.")
     checkpoint.add_argument("--dashboard", action="store_true", help="Rescan and render dashboard after checkpointing.")
 
@@ -118,12 +119,14 @@ def cmd_install_launchagent(args: argparse.Namespace) -> int:
 
 
 def cmd_where(args: argparse.Namespace) -> int:
+    from .config import redacted_path
+
     config = load_config(args.config)
-    print(f"config={config.path}")
-    print(f"state_dir={config.state_dir}")
-    print(f"latest_json={config.latest_json_path}")
-    print(f"dashboard_html={config.dashboard_html_path}")
-    print(f"history_sqlite={config.history_sqlite_path}")
+    print(f"config={redacted_path(config, config.path)}")
+    print(f"state_dir={redacted_path(config, config.state_dir)}")
+    print(f"latest_json={redacted_path(config, config.latest_json_path)}")
+    print(f"dashboard_html={redacted_path(config, config.dashboard_html_path)}")
+    print(f"history_sqlite={redacted_path(config, config.history_sqlite_path)}")
     return 0
 
 
