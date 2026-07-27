@@ -12,12 +12,12 @@ from .config import Config
 
 def render_dashboard(config: Config, summary: dict[str, Any]) -> Path:
     config.state_dir.mkdir(parents=True, exist_ok=True)
-    config.dashboard_html_path.write_text(render_html(summary), encoding="utf-8")
+    config.dashboard_html_path.write_text(render_html(summary, config.refresh_seconds), encoding="utf-8")
     config.dashboard_html_path.chmod(stat.S_IRUSR | stat.S_IWUSR)
     return config.dashboard_html_path
 
 
-def render_html(summary: dict[str, Any]) -> str:
+def render_html(summary: dict[str, Any], refresh_seconds: int = 0) -> str:
     totals = summary.get("totals", {})
     repos = summary.get("repos", [])
     rows = "\n".join(_render_repo(repo) for repo in repos)
@@ -27,6 +27,7 @@ def render_html(summary: dict[str, Any]) -> str:
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+{f'<meta http-equiv="refresh" content="{refresh_seconds}">' if refresh_seconds > 0 else ""}
 <title>Git Steward</title>
 <style>
 :root {{

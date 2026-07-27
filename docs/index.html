@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Git Steward — local-first Git worktree hygiene</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  background: #0f1117;
+  color: #e4e7eb;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.container {
+  max-width: 640px;
+  width: 100%;
+}
+
+nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 48px;
+}
+
+.logo {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: #f2f4f7;
+}
+
+.logo span { color: #a3e635; }
+
+nav a {
+  color: #9ca3af;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: color .15s;
+}
+
+nav a:hover { color: #f2f4f7; }
+
+.terminal {
+  background: #181b23;
+  border: 1px solid #262a33;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 32px;
+}
+
+.terminal-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #12141c;
+  border-bottom: 1px solid #262a33;
+}
+
+.dot { width: 10px; height: 10px; border-radius: 50%; }
+.dot-r { background: #ef4444; }
+.dot-y { background: #eab308; }
+.dot-g { background: #22c55e; }
+
+.terminal-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: #6b7280;
+  margin-left: 8px;
+}
+
+.terminal-body {
+  padding: 20px 24px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  line-height: 1.7;
+  overflow-x: auto;
+}
+
+.prompt { color: #6b7280; }
+.cmd { color: #e4e7eb; }
+.green { color: #4ade80; }
+.yellow { color: #facc15; }
+.blue { color: #60a5fa; }
+.magenta { color: #c084fc; }
+.gray { color: #9ca3af; }
+.dim { color: #6b7280; }
+
+.tagline {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.tagline h1 {
+  font-size: 32px;
+  font-weight: 600;
+  color: #f2f4f7;
+  margin-bottom: 8px;
+}
+
+.tagline p {
+  font-size: 16px;
+  color: #9ca3af;
+  line-height: 1.5;
+}
+
+.install {
+  background: #181b23;
+  border: 1px solid #262a33;
+  border-radius: 10px;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.install-code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 15px;
+  color: #e4e7eb;
+}
+
+.install-code span { color: #a3e635; }
+
+.copy-btn {
+  background: #272b36;
+  border: none;
+  color: #9ca3af;
+  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background .15s, color .15s;
+}
+
+.copy-btn:hover {
+  background: #323742;
+  color: #f2f4f7;
+}
+
+.footer {
+  margin-top: 48px;
+  text-align: center;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.footer a {
+  color: #9ca3af;
+  text-decoration: none;
+}
+
+.footer a:hover { color: #f2f4f7; }
+
+@media (max-width: 500px) {
+  .terminal-body { font-size: 12px; padding: 16px; }
+  .tagline h1 { font-size: 24px; }
+  .install-code { font-size: 13px; }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<nav>
+  <div class="logo">git-<span>steward</span></div>
+  <a href="https://github.com/alfaruqstories/git-steward" target="_blank" rel="noopener">GitHub →</a>
+</nav>
+
+<div class="terminal">
+  <div class="terminal-bar">
+    <div class="dot dot-r"></div>
+    <div class="dot dot-y"></div>
+    <div class="dot dot-g"></div>
+    <span class="terminal-title">git-steward scan --dashboard</span>
+  </div>
+  <div class="terminal-body">
+    <span class="dim"># scanning 3 roots under ~/Code …</span><br>
+    <br>
+    <span class="green">✓</span> <span class="gray">project-alpha</span>   <span class="dim">main · clean</span><br>
+    <span class="yellow">~</span> <span class="gray">project-beta</span>    <span class="dim">feat/auth ·</span> <span class="yellow">2 dirty</span> <span class="dim">·</span> <span class="blue">1 ahead</span><br>
+    <span class="green">✓</span> <span class="gray">project-gamma</span>  <span class="dim">main ·</span> <span class="magenta">3 stashes</span><br>
+    <br>
+    <span class="dim">──</span> <span class="gray">3 repos · 1 dirty · 0 blocked ──</span><br>
+    <span class="dim">dashboard → ~/.local/state/git-steward/dashboard.html</span>
+  </div>
+</div>
+
+<div class="tagline">
+  <h1>Local-first Git worktree hygiene.</h1>
+  <p>Scan repos, spot dirt, checkpoint safely, serve dashboards. Nothing leaves your machine.</p>
+</div>
+
+<div class="install">
+  <span class="install-code"><span>$</span> pip install git-steward</span>
+  <button class="copy-btn" onclick="navigator.clipboard.writeText('pip install git-steward');this.textContent='copied!';setTimeout(()=>this.textContent='copy',1500)">copy</button>
+</div>
+
+<div class="footer">
+  MIT · <a href="https://github.com/alfaruqstories/git-steward" target="_blank" rel="noopener">alfaruqstories/git-steward</a>
+</div>
+
+</div>
+
+</body>
+</html>

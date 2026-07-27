@@ -11,6 +11,7 @@ from .dashboard import render_dashboard
 from .git_status import scan_all
 from .history import record_run
 from .scheduler import install_launchagent
+from .serve import ServeServer
 from .state import read_latest, write_latest
 
 
@@ -40,6 +41,11 @@ def build_parser() -> argparse.ArgumentParser:
     agent.add_argument("--interval", type=int, default=3600, help="Scan interval in seconds.")
     agent.add_argument("--executable", help="Path to git-steward executable.")
 
+    serve = sub.add_parser("serve", help="Start dashboard HTTP server with live refresh and port detection.")
+    serve.add_argument("--port", type=int, default=8199, help="HTTP port (default 8199).")
+    serve.add_argument("--refresh", type=int, default=0, help="Override config refresh_seconds for scan interval.")
+    serve.add_argument("--open", action="store_true", help="Open dashboard in browser.")
+
     sub.add_parser("where", help="Print config and state paths.")
     return parser
 
@@ -55,6 +61,8 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_dashboard(args)
         if args.command == "checkpoint":
             return cmd_checkpoint(args)
+        if args.command == "serve":
+            return cmd_serve(args)
         if args.command == "install-launchagent":
             return cmd_install_launchagent(args)
         if args.command == "where":
@@ -106,6 +114,20 @@ def cmd_checkpoint(args: argparse.Namespace) -> int:
         record_run(config, summary, statuses)
         write_latest(config, summary)
         print(render_dashboard(config, summary))
+    return 0
+
+
+def cmd_serve(args: argparse.Namespace) -> int:
+    import webbrowser
+    from dataclasses import replace
+
+    config = load_config(args.config)
+    if args.refresh > 0:
+        config = replace(config, refresh_seconds=args.refresh)
+    server = ServeServer(config, port=args.port)
+    if args.open:
+        webbrowser.open(f"http://127.0.0.1:{args.port}/")
+    server.serve_forever()
     return 0
 
 
