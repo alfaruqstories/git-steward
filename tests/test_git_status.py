@@ -10,11 +10,13 @@ class GitStatusTests(unittest.TestCase):
         self.assertEqual(entries[1], {"xy": "??", "path": "notes.md"})
 
     def test_status_counts(self):
-        counts = status_counts([
-            {"xy": " M", "path": "a.py"},
-            {"xy": "A ", "path": "b.py"},
-            {"xy": "??", "path": "c.py"},
-        ])
+        counts = status_counts(
+            [
+                {"xy": " M", "path": "a.py"},
+                {"xy": "A ", "path": "b.py"},
+                {"xy": "??", "path": "c.py"},
+            ]
+        )
         self.assertEqual(counts["dirty"], 3)
         self.assertEqual(counts["staged"], 1)
         self.assertEqual(counts["unstaged"], 1)
