@@ -45,7 +45,7 @@ class Config:
     scan_workers: int = 8
     allow_checkpoint: bool = False
     checkpoint_message: str = "chore: checkpoint local work"
-    refresh_seconds: int = 30
+    refresh_seconds: int = 43200
     archive_markers: list[str] = field(default_factory=lambda: list(DEFAULT_ARCHIVE_MARKERS))
     exclude_paths: list[Path] = field(default_factory=list)
     quarantine_paths: list[Path] = field(default_factory=list)
@@ -134,7 +134,7 @@ def write_initial_config(path: Path, roots: list[str], force: bool = False) -> P
     git_timeout_seconds = 4
     allow_checkpoint = false
     checkpoint_message = "chore: checkpoint local work"
-    refresh_seconds = 30
+    refresh_seconds = 43200
 
     [output]
     state_dir = "~/.local/state/git-steward"

@@ -121,7 +121,8 @@ def cmd_serve(args: argparse.Namespace) -> int:
     import webbrowser
 
     config = load_config(args.config)
-    server = ServeServer(config, port=args.port, refresh_seconds=args.refresh)
+    refresh = args.refresh if args.refresh > 0 else config.refresh_seconds
+    server = ServeServer(config, port=args.port, refresh_seconds=refresh)
     if args.open:
         webbrowser.open(f"http://127.0.0.1:{args.port}/")
     server.serve_forever()

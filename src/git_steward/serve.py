@@ -111,7 +111,7 @@ class _Handler(BaseHTTPRequestHandler):
                 summary = sv._latest or {}
             from .dashboard import render_html
 
-            self._send_html(200, render_html(summary, sv.config.refresh_seconds))
+            self._send_html(200, render_html(summary))
         elif self.path == "/api":
             eps = ["/", "/dashboard", "/api", "/api/latest.json", "/api/ports", "/api/scan"]
             self._send_json(200, {"endpoints": eps})
@@ -150,7 +150,8 @@ class ServeServer:
         print(f"Serving dashboard at http://127.0.0.1:{self.port}/")
         print(f"API at http://127.0.0.1:{self.port}/api")
         if self.refresh_seconds > 0:
-            print(f"Auto-scan every {self.refresh_seconds}s (disable with --refresh 0).")
+            per_day = round(86400 / self.refresh_seconds)
+            print(f"Auto-scan every {self.refresh_seconds}s ({per_day}x/day).")
         print("Press Ctrl+C to stop.")
 
         if self.refresh_seconds > 0:

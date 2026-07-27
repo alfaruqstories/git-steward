@@ -9,15 +9,17 @@ from typing import Any
 
 from .config import Config
 
+DASHBOARD_META_REFRESH = 60
+
 
 def render_dashboard(config: Config, summary: dict[str, Any]) -> Path:
     config.state_dir.mkdir(parents=True, exist_ok=True)
-    config.dashboard_html_path.write_text(render_html(summary, config.refresh_seconds), encoding="utf-8")
+    config.dashboard_html_path.write_text(render_html(summary), encoding="utf-8")
     config.dashboard_html_path.chmod(stat.S_IRUSR | stat.S_IWUSR)
     return config.dashboard_html_path
 
 
-def render_html(summary: dict[str, Any], refresh_seconds: int = 0) -> str:
+def render_html(summary: dict[str, Any], refresh_seconds: int = DASHBOARD_META_REFRESH) -> str:
     totals = summary.get("totals", {})
     repos = summary.get("repos", [])
     rows = "\n".join(_render_repo(repo) for repo in repos)
