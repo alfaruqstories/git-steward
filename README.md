@@ -1,5 +1,10 @@
 # Git Steward
 
+[![License](https://img.shields.io/github/license/alfaruqstories/git-steward)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.11+-blue.svg)]()
+[![CI](https://img.shields.io/github/actions/workflow/status/alfaruqstories/git-steward/ci.yml)]()
+[![Last commit](https://img.shields.io/github/last-commit/alfaruqstories/git-steward)]()
+
 Local-first Git worktree hygiene, status dashboards, no-loss checkpointing, and dev server lifecycle management.
 
 ```bash
