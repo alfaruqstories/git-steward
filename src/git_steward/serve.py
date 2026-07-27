@@ -123,14 +123,18 @@ class _Handler(BaseHTTPRequestHandler):
 
 
 class ServeServer:
-    def __init__(self, config: Config, port: int = 8199) -> None:
+    def __init__(self, config: Config, port: int = 8199, refresh_seconds: int = 0) -> None:
         self.config = config
         self.port = port
+        self.refresh_seconds = refresh_seconds
         self._latest: dict[str, object] = {}
         self._stop_event = threading.Event()
 
     def _rescan_loop(self) -> None:
         while not self._stop_event.is_set():
+            self._stop_event.wait(self.refresh_seconds)
+            if self._stop_event.is_set():
+                break
             try:
                 summary, statuses = scan_all(self.config, fetch=False)
                 record_run(self.config, summary, statuses)
@@ -139,17 +143,19 @@ class ServeServer:
                 self._latest = summary
             except Exception:
                 pass
-            self._stop_event.wait(self.config.refresh_seconds)
 
     def serve_forever(self) -> None:
         _Handler.server_instance = self
         server = HTTPServer(("127.0.0.1", self.port), _Handler)
         print(f"Serving dashboard at http://127.0.0.1:{self.port}/")
         print(f"API at http://127.0.0.1:{self.port}/api")
+        if self.refresh_seconds > 0:
+            print(f"Auto-scan every {self.refresh_seconds}s (disable with --refresh 0).")
         print("Press Ctrl+C to stop.")
 
-        rescan = threading.Thread(target=self._rescan_loop, daemon=True)
-        rescan.start()
+        if self.refresh_seconds > 0:
+            rescan = threading.Thread(target=self._rescan_loop, daemon=True)
+            rescan.start()
 
         try:
             server.serve_forever()

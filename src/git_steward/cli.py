@@ -119,12 +119,9 @@ def cmd_checkpoint(args: argparse.Namespace) -> int:
 
 def cmd_serve(args: argparse.Namespace) -> int:
     import webbrowser
-    from dataclasses import replace
 
     config = load_config(args.config)
-    if args.refresh > 0:
-        config = replace(config, refresh_seconds=args.refresh)
-    server = ServeServer(config, port=args.port)
+    server = ServeServer(config, port=args.port, refresh_seconds=args.refresh)
     if args.open:
         webbrowser.open(f"http://127.0.0.1:{args.port}/")
     server.serve_forever()
