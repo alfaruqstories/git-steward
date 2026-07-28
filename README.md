@@ -15,10 +15,10 @@ git-steward scan --dashboard
 
 ## Features
 
-- **Scan** — discover repos under configured roots, report branch, dirty/untracked/stashed state, ahead/behind counts
-- **Dashboard** — local HTML dashboard rendered from scan data
+- **Scan** — discover repos under configured roots, report branch, dirty/untracked/stashed state, ahead/behind counts. Optional macOS notification with results (`--notify`).
+- **Dashboard** — local HTML dashboard rendered from scan data, auto-refreshes every 60s.
+- **Serve** — live HTTP server serving the dashboard with API endpoints, port detection for running dev servers, and optional background re-scanning.
 - **Checkpoint** — guarded local checkpoint commits for dirty repos (never pushes)
-- **Serve** — detect running dev servers, check health, start/stop, focus their terminal
 - **History** — SQLite timeline of scans, blockages, blockages, checkpoints
 - **Safe by default** — skips active Git operations, secret-looking untracked paths, quarantined repos; never pushes
 
@@ -45,7 +45,10 @@ Requires Python 3.11+.
 git-steward init --root ~/Code
 
 # Scan all discovered repos and open the dashboard
-git-steward scan --dashboard
+git-steward scan --dashboard --notify
+
+# Serve the dashboard live in your browser (auto-refresh, port detection)
+git-steward serve --open
 
 # See where config and state files live
 git-steward where
@@ -61,6 +64,7 @@ Config lives at `~/.config/git-steward/config.toml` by default. State files go t
 git-steward scan                          # scan and write latest.json + history.sqlite
 git-steward scan --fetch                  # fetch remotes before ahead/behind checks
 git-steward scan --dashboard              # also render dashboard.html
+git-steward scan --notify                 # show macOS notification with results
 ```
 
 ### Dashboard
@@ -80,17 +84,22 @@ git-steward checkpoint --safe --message "wip: before refactor"
 
 Checkpointing is opt-in (`allow_checkpoint = true` in config). It skips repos with active Git operations, suspect untracked paths (`.env`, keys), and status errors.
 
-### Dev Server Lifecycle
+### Live Dashboard Server
 
 ```bash
-git-steward serve ls                      # list running dev servers per project
-git-steward serve start <project>         # start a dev server
-git-steward serve stop <project>          # stop a running dev server
-git-steward serve focus <project>         # focus the terminal it's running in
-git-steward serve health <project>        # probe HTTP/TCP health check
+git-steward serve                         # start HTTP server on :8199
+git-steward serve --port 8080             # custom port
+git-steward serve --open                  # open dashboard in browser
+git-steward serve --refresh 21600         # auto-scan every 6 hours (4x/day)
 ```
 
-Detects projects by matching known dev commands (`next dev`, `vite`, `uvicorn`, `manage.py runserver`, etc.) against repo paths. Ports and process info are tracked in the state directory.
+Serves the dashboard at `/` and provides API endpoints:
+
+- `/api/latest.json` — latest scan data
+- `/api/ports` — running dev servers detected (Vite, Next.js, Django, etc.)
+- `/api/scan` — trigger an on-demand re-scan
+
+Background re-scanning is opt-in via `--refresh` (default: off). Configure frequency in `config.toml` with `refresh_seconds = 43200` (2x/day).
 
 ### Scheduled Scanning (macOS)
 
@@ -98,6 +107,8 @@ Detects projects by matching known dev commands (`next dev`, `vite`, `uvicorn`, 
 git-steward install-launchagent --interval 3600
 launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.git-steward.scan.plist
 ```
+
+The LaunchAgent runs `scan --dashboard --notify` on a timer. Notifications use `terminal-notifier` (click opens the live dashboard at `http://127.0.0.1:8199/`) or fall back to `osascript`.
 
 ### Menu Bar Integration (SwiftBar/xBar)
 
@@ -115,6 +126,7 @@ git_timeout_seconds = 4
 scan_workers = 8
 allow_checkpoint = false          # enable with caution
 checkpoint_message = "chore: checkpoint local work"
+refresh_seconds = 43200           # background scan interval (2x/day) for serve mode
 
 [output]
 state_dir = "~/.local/state/git-steward"
