@@ -10,7 +10,7 @@
 Local-first Git worktree hygiene, status dashboards, no-loss checkpointing, and dev server lifecycle management.
 
 ```bash
-pip install git-steward
+pip install git+https://github.com/alfaruqstories/git-steward.git
 git-steward init --root ~/Code
 git-steward scan --dashboard
 ```
@@ -27,10 +27,10 @@ git-steward scan --dashboard
 ## Install
 
 ```bash
-pip install git-steward
+pip install git+https://github.com/alfaruqstories/git-steward.git
 ```
 
-Or from source:
+Or from a local clone:
 
 ```bash
 git clone https://github.com/alfaruqstories/git-steward
