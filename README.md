@@ -5,7 +5,7 @@
 [![CI](https://img.shields.io/github/actions/workflow/status/alfaruqstories/git-steward/ci.yml)]()
 [![Last commit](https://img.shields.io/github/last-commit/alfaruqstories/git-steward)]()
 
-<img alt="Git Steward screenshot" src="docs/git-steward.png" width="728">
+<img alt="Git Steward dashboard showing scanned repos with dirty/ahead/stash status" src="docs/git-steward.png" width="728" style="max-width:100%;height:auto">
 
 Local-first Git worktree hygiene, status dashboards, no-loss checkpointing, and dev server lifecycle management.
 
@@ -21,7 +21,7 @@ git-steward scan --dashboard
 - **Dashboard** — local HTML dashboard rendered from scan data, auto-refreshes every 60s.
 - **Serve** — live HTTP server serving the dashboard with API endpoints, port detection for running dev servers, and optional background re-scanning.
 - **Checkpoint** — guarded local checkpoint commits for dirty repos (never pushes)
-- **History** — SQLite timeline of scans, blockages, blockages, checkpoints
+- **History** — SQLite timeline of scans, blockages, checkpoints
 - **Safe by default** — skips active Git operations, secret-looking untracked paths, quarantined repos; never pushes
 
 ## Install
@@ -169,3 +169,7 @@ python3 -m pytest tests/
 ## License
 
 MIT
+
+## Contributing
+
+Issues and pull requests welcome at [alfaruqstories/git-steward](https://github.com/alfaruqstories/git-steward).
