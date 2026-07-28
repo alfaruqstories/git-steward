@@ -25,6 +25,7 @@ def install_launchagent(config: Config, executable: str, interval: int = 3600, l
         str(config.path),
         "scan",
         "--dashboard",
+        "--notify",
     ]
     data = {
         "Label": label,

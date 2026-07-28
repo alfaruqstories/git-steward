@@ -4,6 +4,7 @@ import argparse
 import json
 import shutil
 import sys
+from typing import Any
 
 from .checkpoint import checkpoint_safe
 from .config import default_config_paths, find_config_path, load_config, write_initial_config
@@ -27,6 +28,7 @@ def build_parser() -> argparse.ArgumentParser:
     scan = sub.add_parser("scan", help="Scan configured repos and write latest.json/history.sqlite.")
     scan.add_argument("--fetch", action="store_true", help="Fetch remotes before ahead/behind checks.")
     scan.add_argument("--dashboard", action="store_true", help="Render dashboard.html after scanning.")
+    scan.add_argument("--notify", action="store_true", help="Show macOS notification with results.")
 
     sub.add_parser("dashboard", help="Render dashboard.html from latest.json.")
 
@@ -83,6 +85,8 @@ def cmd_init(args: argparse.Namespace) -> int:
 
 
 def cmd_scan(args: argparse.Namespace) -> int:
+    import subprocess
+
     config = load_config(args.config)
     summary, statuses = scan_all(config, fetch=args.fetch)
     record_run(config, summary, statuses)
@@ -91,6 +95,26 @@ def cmd_scan(args: argparse.Namespace) -> int:
     if args.dashboard:
         dashboard = render_dashboard(config, summary)
         print(dashboard)
+    if args.notify:
+        totals: dict[str, Any] = summary.get("totals", {})  # type: ignore[assignment]
+        parts = []
+        d = totals.get("dirty_repos", 0) or 0
+        a = totals.get("ahead_repos", 0) or 0
+        b = totals.get("blocked_repos", 0) or 0
+        s = totals.get("stash_repos", 0) or 0
+        if d:
+            parts.append(f"{d} dirty")
+        if a:
+            parts.append(f"{a} ahead")
+        if b:
+            parts.append(f"{b} blocked")
+        if s:
+            parts.append(f"{s} stashes")
+        body = " · ".join(parts) if parts else "all clean"
+        subprocess.run(
+            ["osascript", "-e", f'display notification "{body}" with title "Git Steward"'],
+            capture_output=True,
+        )
     return 0
 
 
