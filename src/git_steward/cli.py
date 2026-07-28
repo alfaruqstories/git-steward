@@ -111,10 +111,18 @@ def cmd_scan(args: argparse.Namespace) -> int:
         if s:
             parts.append(f"{s} stashes")
         body = " · ".join(parts) if parts else "all clean"
-        subprocess.run(
-            ["osascript", "-e", f'display notification "{body}" with title "Git Steward"'],
-            capture_output=True,
-        )
+        dashboard_url = "http://127.0.0.1:8199/"
+        tn = shutil.which("terminal-notifier")
+        if tn:
+            subprocess.run(
+                [tn, "-title", "Git Steward", "-message", body, "-open", dashboard_url, "-ignoreDnD"],
+                capture_output=True,
+            )
+        else:
+            subprocess.run(
+                ["osascript", "-e", f'display notification "{body}" with title "Git Steward"'],
+                capture_output=True,
+            )
     return 0
 
 
