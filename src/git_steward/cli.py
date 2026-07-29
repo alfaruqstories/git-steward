@@ -25,9 +25,9 @@ def build_parser() -> argparse.ArgumentParser:
     init.add_argument("--root", action="append", default=[], help="Repo root to scan. Can be repeated.")
     init.add_argument("--force", action="store_true", help="Overwrite existing config.")
 
-    scan = sub.add_parser("scan", help="Scan configured repos and write latest.json/history.sqlite.")
+    scan = sub.add_parser("scan", help="Scan configured repos and write latest.json/history.sqlite + dashboard.html.")
     scan.add_argument("--fetch", action="store_true", help="Fetch remotes before ahead/behind checks.")
-    scan.add_argument("--dashboard", action="store_true", help="Render dashboard.html after scanning.")
+    scan.add_argument("--dashboard", action="store_true", help=argparse.SUPPRESS)
     scan.add_argument("--notify", action="store_true", help="Show macOS notification with results.")
 
     sub.add_parser("dashboard", help="Render dashboard.html from latest.json.")
@@ -92,9 +92,8 @@ def cmd_scan(args: argparse.Namespace) -> int:
     record_run(config, summary, statuses)
     latest = write_latest(config, summary)
     print(latest)
-    if args.dashboard:
-        dashboard = render_dashboard(config, summary)
-        print(dashboard)
+    dashboard = render_dashboard(config, summary)
+    print(dashboard)
     if args.notify:
         totals: dict[str, Any] = summary.get("totals", {})  # type: ignore[assignment]
         parts = []

@@ -19,6 +19,7 @@ def install_launchagent(config: Config, executable: str, interval: int = 3600, l
     plist_path.parent.mkdir(parents=True, exist_ok=True)
     log_dir = config.state_dir / "logs"
     log_dir.mkdir(parents=True, exist_ok=True)
+    log_dir.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
     program_arguments = [
         executable,
         "--config",

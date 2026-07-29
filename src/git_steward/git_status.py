@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import re
 import subprocess
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
@@ -69,6 +70,7 @@ class RepoStatus:
     fetch: str = "not_run"
     local_only: bool = False
     blocked_reason: str | None = None
+    timed_out: bool = False
 
     def public_dict(self) -> dict[str, object]:
         return {
@@ -119,12 +121,21 @@ def discover_repos(config: Config) -> list[Path]:
         if not base.exists():
             continue
         base_depth = len(base.parts)
+        found = _discover_in_root(base, base_depth, root.depth, config)
+        repos.update(found)
+    return sorted(repos, key=lambda p: str(p).lower())
+
+
+def _discover_in_root(base: Path, base_depth: int, depth: int, config: Config) -> set[Path]:
+    repos: set[Path] = set()
+
+    def walk() -> None:
         for current, dirs, files in os.walk(base):
             current_path = Path(current)
             if is_path_under(current_path, config.exclude_paths):
                 dirs[:] = []
                 continue
-            if len(current_path.parts) - base_depth > root.depth:
+            if len(current_path.parts) - base_depth > depth:
                 dirs[:] = []
                 continue
             if ".git" in dirs or ".git" in files:
@@ -136,7 +147,11 @@ def discover_repos(config: Config) -> list[Path]:
                 for d in dirs
                 if d not in SKIP_DIR_NAMES and not _archive_like(str(current_path / d), config.archive_markers)
             ]
-    return sorted(repos, key=lambda p: str(p).lower())
+
+    thread = threading.Thread(target=walk, daemon=True)
+    thread.start()
+    thread.join(timeout=config.scan_timeout_seconds)
+    return repos
 
 
 def scan_all(config: Config, fetch: bool = False) -> tuple[dict[str, object], list[RepoStatus]]:
@@ -144,10 +159,13 @@ def scan_all(config: Config, fetch: bool = False) -> tuple[dict[str, object], li
     repos = discover_repos(config)
     statuses: list[RepoStatus] = []
     workers = max(1, min(config.scan_workers, 16))
-    with ThreadPoolExecutor(max_workers=workers) as executor:
+    executor = ThreadPoolExecutor(max_workers=workers)
+    try:
         futures = {executor.submit(scan_repo, config, repo, fetch): repo for repo in repos}
+        completed = 0
         for future in as_completed(futures):
             repo = futures[future]
+            completed += 1
             try:
                 statuses.append(future.result())
             except Exception as exc:
@@ -162,6 +180,8 @@ def scan_all(config: Config, fetch: bool = False) -> tuple[dict[str, object], li
                         local_only=True,
                     )
                 )
+    finally:
+        executor.shutdown(wait=False, cancel_futures=True)
     statuses.sort(key=lambda status: (not status.local_only, status.path.lower()))
     totals = {
         "repos": len(statuses),
@@ -217,6 +237,7 @@ def scan_repo(config: Config, repo: Path, fetch: bool = False) -> RepoStatus:
     porcelain = git(config, repo, ["status", "--porcelain=v1", "-z", "--untracked-files=no"])
     if porcelain.code != 0:
         status.status_error = porcelain.stderr or str(porcelain.code)
+        status.timed_out = porcelain.timed_out
     tracked_entries = parse_status_z(porcelain.stdout if porcelain.code == 0 else "")
     counts = status_counts(tracked_entries)
 
@@ -226,13 +247,15 @@ def scan_repo(config: Config, repo: Path, fetch: bool = False) -> RepoStatus:
         untracked_paths = untracked.stdout.splitlines() if untracked.stdout else []
     else:
         status.untracked_error = untracked.stderr or str(untracked.code)
+        if untracked.timed_out:
+            status.timed_out = True
     untracked_entries = [{"xy": "??", "path": p} for p in untracked_paths]
 
     counts["dirty"] += len(untracked_entries)
     counts["untracked"] = len(untracked_entries)
     for key, value in counts.items():
         setattr(status, key, value)
-    status.sample_changes = (tracked_entries + untracked_entries)[:20]
+    status.sample_changes = _redact_secret_paths((tracked_entries + untracked_entries)[:20])
     status.suspect_untracked = suspect_untracked(untracked_paths)[:25]
 
     branch = git(config, repo, ["rev-parse", "--abbrev-ref", "HEAD"])
@@ -300,6 +323,20 @@ def suspect_untracked(paths: list[str]) -> list[str]:
     return suspects
 
 
+def _redact_secret_paths(entries: list[dict[str, str]]) -> list[dict[str, str]]:
+    redacted: list[dict[str, str]] = []
+    for entry in entries:
+        path = entry.get("path", "")
+        if SECRET_NAME_RE.search(path) or SECRET_EXT_RE.search(path):
+            redacted.append({"xy": entry["xy"], "path": "***redacted***"})
+        else:
+            redacted.append(entry)
+    return redacted
+
+
+FS_STALL_MARKERS = ["Resource deadlock avoided", "mmap failed"]
+
+
 def blocked_reason(status: RepoStatus) -> str | None:
     if status.quarantined:
         return "quarantined_by_config"
@@ -307,7 +344,11 @@ def blocked_reason(status: RepoStatus) -> str | None:
         return "active_git_operation"
     if status.suspect_untracked:
         return "suspect_untracked"
+    if status.timed_out:
+        return "fs_stall"
     if status.status_error:
+        if any(m in status.status_error for m in FS_STALL_MARKERS):
+            return "fs_stall"
         return "status_error"
     if status.untracked_error:
         return "untracked_error"

@@ -40,8 +40,8 @@ class Config:
     state_dir: Path
     repos: list[Path] = field(default_factory=list)
     redact_paths: bool = True
-    scan_timeout_seconds: int = 4
-    git_timeout_seconds: int = 4
+    scan_timeout_seconds: int = 30
+    git_timeout_seconds: int = 10
     scan_workers: int = 8
     allow_checkpoint: bool = False
     checkpoint_message: str = "chore: checkpoint local work"
@@ -111,8 +111,8 @@ def load_config(explicit: str | None = None) -> Config:
         repos=repos,
         state_dir=state_dir,
         redact_paths=bool(data.get("redact_paths", True)),
-        scan_timeout_seconds=int(data.get("scan_timeout_seconds", 4)),
-        git_timeout_seconds=int(data.get("git_timeout_seconds", 4)),
+        scan_timeout_seconds=int(data.get("scan_timeout_seconds", 30)),
+        git_timeout_seconds=int(data.get("git_timeout_seconds", 10)),
         scan_workers=int(data.get("scan_workers", 8)),
         allow_checkpoint=bool(data.get("allow_checkpoint", False)),
         checkpoint_message=str(data.get("checkpoint_message", "chore: checkpoint local work")),
@@ -130,8 +130,8 @@ def write_initial_config(path: Path, roots: list[str], force: bool = False) -> P
     body = f"""\
     version = 1
     redact_paths = true
-    scan_timeout_seconds = 4
-    git_timeout_seconds = 4
+    scan_timeout_seconds = 30
+    git_timeout_seconds = 10
     allow_checkpoint = false
     checkpoint_message = "chore: checkpoint local work"
     refresh_seconds = 43200

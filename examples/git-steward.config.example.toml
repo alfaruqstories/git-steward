@@ -1,7 +1,7 @@
 version = 1
 redact_paths = true
-scan_timeout_seconds = 4
-git_timeout_seconds = 4
+scan_timeout_seconds = 30
+git_timeout_seconds = 10
 scan_workers = 8
 allow_checkpoint = false
 checkpoint_message = "chore: checkpoint local work"
