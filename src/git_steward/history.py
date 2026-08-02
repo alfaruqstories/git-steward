@@ -158,3 +158,25 @@ def record_checkpoint(config: Config, repo_hash: str, commit_sha: str, subject: 
             (repo_id, commit_sha, subject, created_at),
         )
         conn.commit()
+
+
+def blocked_trend(db_path: Path, limit: int = 48) -> list[tuple[str, int]]:
+    """Return (started_at, blocked_count) pairs from the most recent scan runs, oldest first."""
+    if not db_path.exists():
+        return []
+    try:
+        with sqlite3.connect(db_path) as conn:
+            rows = conn.execute(
+                "SELECT started_at, totals_json FROM runs ORDER BY id DESC LIMIT ?", (limit,)
+            ).fetchall()
+    except sqlite3.Error:
+        return []
+    result: list[tuple[str, int]] = []
+    for started_at, totals_json in rows:
+        try:
+            totals = json.loads(totals_json)
+        except (ValueError, TypeError):
+            continue
+        result.append((str(started_at), int(totals.get("blocked_repos", 0) or 0)))
+    result.reverse()
+    return result

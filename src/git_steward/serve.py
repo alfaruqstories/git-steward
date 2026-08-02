@@ -10,7 +10,7 @@ from typing import Any
 from .config import Config
 from .dashboard import render_dashboard
 from .git_status import scan_all
-from .history import record_run
+from .history import blocked_trend, record_run
 from .state import read_latest, write_latest
 
 PORT_RANGES: list[tuple[str, int]] = [
@@ -110,7 +110,7 @@ class _Handler(BaseHTTPRequestHandler):
                 summary = sv._latest or {}
             from .dashboard import render_html
 
-            self._send_html(200, render_html(summary))
+            self._send_html(200, render_html(summary, trend=blocked_trend(sv.config.history_sqlite_path)))
         elif self.path == "/api":
             eps = ["/", "/dashboard", "/api", "/api/latest.json", "/api/ports", "/api/scan"]
             self._send_json(200, {"endpoints": eps})
