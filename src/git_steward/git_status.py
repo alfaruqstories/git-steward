@@ -190,6 +190,8 @@ def scan_all(config: Config, fetch: bool = False) -> tuple[dict[str, object], li
         "stash_repos": sum(1 for s in statuses if s.stash_count),
         "blocked_repos": sum(1 for s in statuses if s.blocked_reason),
         "local_only_repos": sum(1 for s in statuses if s.local_only),
+        "files_missing_repos": sum(1 for s in statuses if s.deleted > 0),
+        "files_missing_total": sum(s.deleted for s in statuses),
     }
     finished = _now()
     summary = {

@@ -15,12 +15,17 @@ def _summary() -> dict:
                 "untracked": 0,
                 "ahead": 1 if i == 2 else 0,
                 "stash_count": 1 if i == 1 else 0,
+                "deleted": 3 if i == 1 else 0,
                 "blocked_reason": "status_error" if i == 0 else None,
             }
         )
     return {
         "finished_at": "2026-08-02T12:00:00+0100",
-        "totals": {"repos": 3, "blocked_repos": 1, "dirty_repos": 1, "ahead_repos": 1, "stash_repos": 1},
+        "totals": {
+            "repos": 3, "blocked_repos": 1, "dirty_repos": 1,
+            "ahead_repos": 1, "stash_repos": 1,
+            "files_missing_total": 3, "files_missing_repos": 1,
+        },
         "repos": repos,
     }
 
@@ -58,6 +63,14 @@ class DashboardRenderTests(unittest.TestCase):
     def test_refresh_meta_respects_flag(self):
         self.assertIn('<meta http-equiv="refresh" content="60">', render_html(_summary()))
         self.assertNotIn('http-equiv="refresh"', render_html(_summary(), refresh_seconds=0))
+
+    def test_missing_files_column_and_kpi(self):
+        out = render_html(_summary())
+        self.assertIn("missing ·", out)
+        self.assertIn(">3<", out)
+        self.assertIn("kpi miss", out)
+        self.assertIn("c-num miss", out)
+        self.assertIn("<th style=\"text-align:right\">miss</th>", out)
 
 
 if __name__ == "__main__":

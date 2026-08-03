@@ -40,6 +40,8 @@ def render_html(
     n_total = len(repos) or int(totals.get("repos", 0) or 0)
     n_blocked, n_dirty, n_clean = len(blocked), len(dirty), len(clean)
     healthy_pct = round((n_total - n_blocked) / n_total * 100) if n_total else 0
+    miss_total = int(totals.get("files_missing_total", 0) or 0)
+    miss_repos = int(totals.get("files_missing_repos", 0) or 0)
 
     reasons = Counter(r.get("blocked_reason") for r in blocked if r.get("blocked_reason"))
     chart = _blocked_chart(reasons, n_total)
@@ -66,13 +68,13 @@ def render_html(
 :root{{
   --bg:#0f1117;--panel:#181b23;--raised:#12141c;--border:#262a33;--border-hi:#3a4150;
   --fg:#e4e7eb;--fg-2:#9ca3af;--fg-3:#6b7280;
-  --ok:#4ade80;--warn:#eab308;--err:#f97316;--info:#60a5fa;--stash:#c084fc;--accent:#a3e635;
+  --ok:#4ade80;--warn:#eab308;--err:#f97316;--info:#60a5fa;--stash:#c084fc;--accent:#a3e635;--miss:#94a3b8;
   --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
 }}
 body[data-theme="light"]{{
   --bg:#f6f7f9;--panel:#ffffff;--raised:#eef0f3;--border:#e3e6ea;--border-hi:#c9ced6;
   --fg:#1a1d21;--fg-2:#5f6672;--fg-3:#8b929e;
-  --ok:#16a34a;--warn:#ca8a04;--err:#c2410c;--info:#2563eb;--stash:#9333ea;--accent:#65a30d;
+  --ok:#16a34a;--warn:#ca8a04;--err:#c2410c;--info:#2563eb;--stash:#9333ea;--accent:#65a30d;--miss:#6b7280;
 }}
 html{{background:var(--bg)}}
 body{{background:var(--bg);color:var(--fg);font:13px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
@@ -108,12 +110,13 @@ body[data-theme="light"] #theme .icon-light{{display:block}}
 .spark-range{{display:flex;justify-content:space-between;font:10px var(--mono);color:var(--fg-3);margin-top:10px;
   padding-top:10px;border-top:1px solid var(--border)}}
 
-.kpis{{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-bottom:16px}}
+.kpis{{display:grid;grid-template-columns:repeat(6,1fr);gap:16px;margin-bottom:16px}}
 .kpi{{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px 18px}}
 .kpi .k-num{{font:600 22px var(--mono);letter-spacing:-0.02em}}
 .kpi .k-label{{font:11px var(--mono);color:var(--fg-3);margin-top:3px}}
 .kpi.err .k-num{{color:var(--err)}}.kpi.warn .k-num{{color:var(--warn)}}
 .kpi.info .k-num{{color:var(--info)}}.kpi.stash .k-num{{color:var(--stash)}}
+.kpi.miss .k-num{{color:var(--miss)}}
 
 .row2{{display:grid;grid-template-columns:380px 1fr;gap:16px;margin-bottom:16px}}
 .rbar{{margin-bottom:14px}}
@@ -155,6 +158,7 @@ tr.sec td{{background:var(--panel);padding:8px 14px;border-bottom:1px solid var(
 .c-num.warn{{color:var(--warn);font-weight:600}}
 .c-num.info{{color:var(--info)}}
 .c-num.stash{{color:var(--stash)}}
+.c-num.miss{{color:var(--miss)}}
 .c-path{{color:var(--fg-3);max-width:360px;overflow:hidden;text-overflow:ellipsis}}
 .c-reason{{text-align:right}}
 .chip{{font:11px var(--mono);padding:2px 9px;border-radius:4px;border:1px solid;display:inline-block}}
@@ -184,6 +188,7 @@ tr.sec td{{background:var(--panel);padding:8px 14px;border-bottom:1px solid var(
     <div class="kpi warn"><div class="k-num num">{n_dirty}</div><div class="k-label">dirty</div></div>
     <div class="kpi info"><div class="k-num num">{totals.get("ahead_repos", 0)}</div><div class="k-label">ahead</div></div>
     <div class="kpi stash"><div class="k-num num">{totals.get("stash_repos", 0)}</div><div class="k-label">stashes</div></div>
+    <div class="kpi miss"><div class="k-num num">{miss_total}</div><div class="k-label">missing · {miss_repos} repos</div></div>
   </div>
 
   <div class="row2">
@@ -204,7 +209,7 @@ tr.sec td{{background:var(--panel);padding:8px 14px;border-bottom:1px solid var(
       <table>
         <thead><tr>
           <th></th><th>repo</th><th>branch</th><th style="text-align:right">dirty</th>
-          <th style="text-align:right">ahead</th><th style="text-align:right">stash</th><th>path</th><th></th>
+          <th style="text-align:right">ahead</th><th style="text-align:right">stash</th><th style="text-align:right">miss</th><th>path</th><th></th>
         </tr></thead>
         <tbody>
         {rows}
@@ -334,12 +339,12 @@ def _blocked_chart(breakdown: Counter[str], total: int) -> str:
 
 def _section(title: str, key: str, count: int, repos: list[dict[str, Any]], accent: str) -> str:
     head = (
-        f'<tr class="sec" data-sec="{key}"><td colspan="8">'
+        f'<tr class="sec" data-sec="{key}"><td colspan="9">'
         f'<span class="sec-name" style="color:{accent}">{title}</span>'
         f'<span class="sec-count">{count}</span></td></tr>'
     )
     if count == 0:
-        return head + f'<tr class="empty-row" data-sec="{key}"><td colspan="8">no {title.lower()} repos right now</td></tr>'
+        return head + f'<tr class="empty-row" data-sec="{key}"><td colspan="9">no {title.lower()} repos right now</td></tr>'
     if key == "blocked":
         repos = sorted(repos, key=lambda r: str(r.get("display_name") or ""))
     elif key == "dirty":
@@ -354,6 +359,7 @@ def _render_repo(repo: dict[str, Any], section_key: str) -> str:
     dirty_n = (repo.get("dirty") or 0) + (repo.get("untracked") or 0)
     ahead = repo.get("ahead") or 0
     stash = repo.get("stash_count") or 0
+    missing = repo.get("deleted") or 0
 
     if reason:
         state = "blocked"
@@ -381,6 +387,7 @@ def _render_repo(repo: dict[str, Any], section_key: str) -> str:
   <td class="c-num{' warn' if dirty_n else ''}">{dirty_n if dirty_n else ''}</td>
   <td class="c-num{' info' if ahead else ''}">{ahead if ahead else ''}</td>
   <td class="c-num{' stash' if stash else ''}">{stash if stash else ''}</td>
+  <td class="c-num{' miss' if missing else ''}">{missing if missing else ''}</td>
   <td class="c-path">{path}</td>
   {chips}
 </tr>"""
